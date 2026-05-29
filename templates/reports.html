@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <title>Community Reports</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+</head>
+
+<body class="bg-black text-white p-10">
+
+<h1 class="text-5xl font-bold text-yellow-400">
+    Community Reports
+</h1>
+
+<p class="mt-4 text-gray-400">
+    Report dangerous locations and dark roads
+</p>
+
+<div class="mt-10 max-w-xl">
+
+    <input
+        type="text"
+        id="location"
+        placeholder="Enter Location"
+        class="w-full p-4 rounded-xl
+               bg-gray-800">
+
+    <textarea
+        id="issue"
+        placeholder="Describe issue"
+        class="w-full p-4 rounded-xl
+               bg-gray-800 mt-5 h-40">
+    </textarea>
+
+    <button
+        onclick="submitReport()"
+        class="mt-5 bg-yellow-500
+               px-8 py-4 rounded-xl">
+
+        Submit Report
+
+    </button>
+
+</div>
+
+<div id="reports"
+     class="mt-10 space-y-4">
+</div>
+
+<script>
+
+function submitReport(){
+
+    const location =
+    document.getElementById(
+        "location"
+    ).value;
+
+    const issue =
+    document.getElementById(
+        "issue"
+    ).value;
+
+    // SAVE REPORTS
+    let reportsData =
+    JSON.parse(
+        localStorage.getItem(
+            "unsafeReports"
+        )
+    ) || [];
+
+    // ADD NEW REPORT
+    reportsData.push({
+
+        location: location,
+        issue: issue
+
+    });
+
+    // SAVE BACK
+    localStorage.setItem(
+        "unsafeReports",
+        JSON.stringify(reportsData)
+    );
+
+    const reports =
+    document.getElementById(
+        "reports"
+    );
+
+    reports.innerHTML += `
+
+        <div class="bg-gray-900
+                    p-5 rounded-xl">
+
+            <h2 class="text-xl font-bold">
+                ${location}
+            </h2>
+
+            <p class="mt-3 text-gray-400">
+                ${issue}
+            </p>
+
+        </div>
+
+    `;
+
+    alert("Unsafe area reported!");
+
+}
+</script>
+
+</body>
+</html>

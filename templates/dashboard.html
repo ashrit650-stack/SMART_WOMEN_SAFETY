@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>SafePath Dashboard</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+
+    <style>
+
+        body{
+            background:#0f172a;
+            color:white;
+            font-family:sans-serif;
+        }
+
+        .glass{
+
+            background:rgba(255,255,255,0.08);
+
+            backdrop-filter:blur(12px);
+
+            border-radius:20px;
+
+            padding:20px;
+        }
+
+        .card{
+
+            transition:0.3s;
+        }
+
+        .card:hover{
+
+            transform:translateY(-5px);
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="flex">
+
+    <!-- SIDEBAR -->
+    <div class="w-72 h-screen glass p-6">
+
+        <h1 class="text-3xl font-bold">
+            SafePath AI
+        </h1>
+
+        <p class="text-gray-400 mt-2">
+            Women Safety Navigation
+        </p>
+<div class="mt-10 space-y-4">
+
+    <!-- LIVE NAVIGATION -->
+    <a href="/navigation/"
+       class="block p-4 glass card hover:bg-pink-500">
+
+        <i class="fa-solid fa-location-dot"></i>
+        Live Navigation
+
+    </a>
+
+    <!-- SAFETY ZONES -->
+    <a href="/safety-zones/"
+       class="block p-4 glass card hover:bg-red-500">
+
+        <i class="fa-solid fa-shield-heart"></i>
+        Safety Zones
+
+    </a>
+
+    <!-- GUARDIAN TRACKING -->
+    <a href="/guardian/"
+       class="block p-4 glass card hover:bg-blue-500">
+
+        <i class="fa-solid fa-users"></i>
+        Guardian Tracking
+
+    </a>
+
+    <!-- COMMUNITY REPORTS -->
+    <a href="/reports/"
+       class="block p-4 glass card hover:bg-yellow-500">
+
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        Community Reports
+
+    </a>
+
+</div>
+
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="flex-1 p-10">
+
+        <h1 class="text-5xl font-bold">
+            Welcome Back 👋
+        </h1>
+
+        <p class="text-gray-400 mt-3">
+            AI-powered smart safety navigation system
+        </p>
+
+        <!-- STATS -->
+        <div class="grid grid-cols-3 gap-6 mt-10">
+
+            <div class="glass p-6">
+
+                <h2 class="text-gray-400">
+                    Safety Score
+                </h2>
+
+                <h1 class="text-5xl font-bold mt-3 text-green-400">
+                    82%
+                </h1>
+
+            </div>
+
+            <div class="glass p-6">
+
+                <h2 class="text-gray-400">
+                    Unsafe Zones
+                </h2>
+
+                <h1 class="text-5xl font-bold mt-3 text-red-400">
+                    14
+                </h1>
+
+            </div>
+
+            <div class="glass p-6">
+
+                <h2 class="text-gray-400">
+                    Nearby Police
+                </h2>
+
+                <h1 class="text-5xl font-bold mt-3 text-blue-400">
+                    6
+                </h1>
+
+            </div>
+
+        </div>
+
+        <!-- QUICK ACTION -->
+        <div class="glass mt-10 p-8">
+
+            <h2 class="text-3xl font-bold">
+                Start Safe Navigation
+            </h2>
+
+            <p class="text-gray-400 mt-3">
+                Get AI-powered safest routes in real time.
+            </p>
+
+            <a href="/navigation/">
+
+                <button class="mt-6 bg-pink-500
+                               px-8 py-4 rounded-xl
+                               text-white font-bold">
+
+                    Open Navigation
+
+                </button>
+
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>

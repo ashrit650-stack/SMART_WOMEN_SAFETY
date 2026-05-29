@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>SafePath AI</title>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Leaflet -->
+    <link rel="stylesheet"
+    href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <link rel="stylesheet"
+href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css"/>
+
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
+    <!-- Icons -->
+    <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+
+    <style>
+
+        body{
+            margin:0;
+            overflow:hidden;
+            font-family:sans-serif;
+            background:black;
+        }
+
+        #map{
+            height:100vh;
+            width:100%;
+        }
+
+        .sidebar{
+
+            position:absolute;
+            top:20px;
+            left:20px;
+
+            width:350px;
+
+            z-index:1000;
+
+            background:rgba(0,0,0,0.6);
+
+            backdrop-filter:blur(15px);
+
+            border-radius:25px;
+
+            padding:25px;
+
+            color:white;
+
+            box-shadow:0 0 30px rgba(0,0,0,0.5);
+        }
+
+        .input-box{
+
+            width:100%;
+
+            padding:14px;
+
+            margin-top:12px;
+
+            border:none;
+
+            border-radius:12px;
+
+            background:rgba(255,255,255,0.1);
+
+            color:white;
+
+            outline:none;
+        }
+
+        .btn{
+
+            width:100%;
+
+            padding:15px;
+
+            border:none;
+
+            border-radius:14px;
+
+            margin-top:18px;
+
+            background:linear-gradient(
+                45deg,
+                #ec4899,
+                #8b5cf6
+            );
+
+            color:white;
+
+            font-weight:bold;
+
+            cursor:pointer;
+
+            transition:0.3s;
+        }
+
+        .btn:hover{
+            transform:scale(1.03);
+        }
+
+        .safety-card{
+
+            margin-top:20px;
+
+            padding:18px;
+
+            border-radius:15px;
+
+            background:rgba(255,255,255,0.08);
+        }
+
+        .sos-btn{
+
+            position:absolute;
+
+            bottom:30px;
+
+            right:30px;
+
+            z-index:2000;
+
+            width:80px;
+
+            height:80px;
+
+            border-radius:50%;
+
+            border:none;
+
+            background:red;
+
+            color:white;
+
+            font-size:28px;
+
+            cursor:pointer;
+
+            box-shadow:0 0 30px red;
+        }
+
+        .top-alert{
+
+            position:absolute;
+
+            top:20px;
+
+            right:20px;
+
+            z-index:2000;
+
+            background:rgba(0,0,0,0.6);
+
+            backdrop-filter:blur(10px);
+
+            color:white;
+
+            padding:15px 20px;
+
+            border-radius:15px;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<!-- MAP -->
+<div id="map"></div>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+
+    <h1 class="text-3xl font-bold">
+        SafePath AI
+    </h1>
+
+    <p class="mt-2 text-gray-300">
+        Smart Women Safety Navigation
+    </p>
+
+    <!-- INPUTS -->
+    <input
+        type="text"
+        class="input-box"
+        id="source"
+placeholder="Enter Source"
+    >
+
+    <input
+        type="text"
+        class="input-box"
+       id="destination"
+placeholder="Enter Destination"
+    >
+
+    <!-- BUTTON -->
+    <button class="btn" id="routeBtn">
+        Find Safest Route
+    </button>
+
+    <!-- SAFETY SCORE -->
+    <div class="safety-card">
+
+        <h2 class="text-xl font-bold mb-2">
+            Route Safety Score
+        </h2>
+        <div class="mt-6">
+
+    <h3 class="text-lg font-bold">
+        AI Route Analysis
+    </h3>
+
+    <div class="mt-4 space-y-2 text-sm">
+
+        <p id="lightScore">
+            ✅ Street Lights: Good
+        </p>
+
+        <p id="policeScore">
+            ✅ Police Nearby
+        </p>
+
+        <p id="dangerScore">
+            ⚠ No Unsafe Zones
+        </p>
+
+    </div>
+
+</div>
+
+        <div class="flex justify-between mt-4">
+            <span>Safety Level</span>
+
+            <span class="text-green-400 font-bold">
+                SAFE
+            </span>
+        </div>
+
+        <div class="w-full bg-gray-700 h-3 rounded mt-4">
+
+            <div class="bg-green-500 h-3 rounded"
+                 style="width:82%">
+            </div>
+
+        </div>
+
+        <p class="mt-4 text-gray-300">
+            Well-lit roads • Police nearby • Crowded areas
+        </p>
+
+    </div>
+
+    <!-- LIVE LOCATION -->
+    <div class="safety-card">
+
+        <h2 class="text-xl font-bold mb-3">
+            Live Location
+        </h2>
+
+        <p>
+            Latitude:
+            <span id="lat">--</span>
+        </p>
+
+        <p class="mt-2">
+            Longitude:
+            <span id="lng">--</span>
+        </p>
+
+    </div>
+
+</div>
+
+<!-- ALERT -->
+<div class="top-alert">
+    <i class="fa-solid fa-shield-heart"></i>
+    Live Safety Monitoring Active
+</div>
+
+<!-- SOS BUTTON -->
+<button class="sos-btn">
+    SOS
+</button>
+
+<script>
+
+    // CREATE MAP
+    const map = L.map('map').setView([20.5937, 78.9629], 5);
+
+    // DARK MAP STYLE
+    L.tileLayer(
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {
+            attribution: '© OpenStreetMap'
+        }
+    ).addTo(map);
+
+    // USER MARKER
+    let userMarker;
+
+    // LIVE GPS
+    navigator.geolocation.watchPosition(
+
+        (position) => {
+
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+
+            // UPDATE UI
+            document.getElementById("lat").innerText = lat;
+            document.getElementById("lng").innerText = lng;
+
+            // FIRST TIME
+            if(!userMarker){
+
+                userMarker = L.marker([lat,lng])
+                    .addTo(map)
+                    .bindPopup("You are here")
+                    .openPopup();
+
+            }else{
+
+                userMarker.setLatLng([lat,lng]);
+            }
+
+            // AUTO CENTER
+            map.setView([lat,lng],16);
+
+        },
+
+        (error) => {
+
+            console.error(error);
+
+            alert(
+                "Please allow location access"
+            );
+
+        },
+
+        {
+            enableHighAccuracy:true,
+            timeout:5000,
+            maximumAge:0
+        }
+
+    );
+
+    // UNSAFE ZONES
+    L.circle(
+        [12.9716,77.5946],
+        {
+            color:'red',
+            fillColor:'#f03',
+            fillOpacity:0.4,
+            radius:400
+        }
+    ).addTo(map)
+     .bindPopup("Unsafe Area");
+
+    // POLICE STATION
+    L.marker([12.975,77.599])
+        .addTo(map)
+        .bindPopup("Nearby Police Station");
+
+    // SOS BUTTON
+    document.querySelector(".sos-btn")
+        .addEventListener("click",()=>{
+
+            alert(
+                "Emergency SOS Activated!"
+            );
+
+        });
+
+let routingControl;
+
+// FIND ROUTE BUTTON
+document.getElementById("routeBtn")
+.addEventListener("click", async () => {
+
+    const source = document
+        .getElementById("source")
+        .value;
+
+    const destination = document
+        .getElementById("destination")
+        .value;
+
+    if(!source || !destination){
+
+        alert("Please enter source and destination");
+
+        return;
+    }
+
+    // GEOCODING API
+    async function getCoordinates(place){
+
+        const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${place}`
+        );
+
+        const data = await response.json();
+
+        return [
+            parseFloat(data[0].lat),
+            parseFloat(data[0].lon)
+        ];
+    }
+
+    // GET COORDINATES
+    const sourceCoords =
+        await getCoordinates(source);
+
+    const destCoords =
+        await getCoordinates(destination);
+
+    // REMOVE OLD ROUTE
+    if(routingControl){
+
+        map.removeControl(routingControl);
+    }
+
+    // CREATE ROUTE
+    routingControl = L.Routing.control({
+
+        waypoints: [
+
+            L.latLng(
+                sourceCoords[0],
+                sourceCoords[1]
+            ),
+
+            L.latLng(
+                destCoords[0],
+                destCoords[1]
+            )
+
+        ],
+
+        routeWhileDragging: true,
+
+        lineOptions: {
+            styles: [
+                {
+                    color: '#22c55e',
+                    weight: 6
+                }
+            ]
+        }
+
+    }).addTo(map);
+
+});
+// AI SAFETY ANALYSIS
+
+let safety = 100;
+
+// GET COMMUNITY REPORTS
+const reportsData =
+JSON.parse(
+    localStorage.getItem(
+        "unsafeReports"
+    )
+) || [];
+
+// CHECK REPORTED AREAS
+reportsData.forEach(report=>{
+
+    const reportLocation =
+    report.location.toLowerCase();
+
+    const destinationText =
+    destination.toLowerCase();
+
+    if(destinationText.includes(reportLocation)){
+
+        safety -= 50;
+
+        alert(
+            "⚠ Warning: Community has reported this area unsafe!"
+        );
+
+        document.getElementById(
+            "dangerScore"
+        ).innerHTML =
+        "❌ Community flagged this route";
+
+    }
+
+});
+// CHECK UNSAFE ZONES
+const unsafeZones = [
+
+    [12.9716,77.5946],
+
+    [12.2958,76.6394]
+
+];
+
+// SIMPLE DISTANCE CHECK
+unsafeZones.forEach(zone => {
+
+    const zoneLat = zone[0];
+    const zoneLng = zone[1];
+
+    const dist =
+        Math.sqrt(
+
+            Math.pow(
+                sourceCoords[0] - zoneLat,
+                2
+            ) +
+
+            Math.pow(
+                sourceCoords[1] - zoneLng,
+                2
+            )
+
+        );
+
+    if(dist < 0.1){
+
+        safety -= 40;
+
+        document.getElementById(
+            "dangerScore"
+        ).innerHTML =
+        "❌ Unsafe zone detected nearby";
+    }
+
+});
+
+// FINAL SAFETY STATUS
+const safetyText =
+document.querySelector(
+    ".text-green-400"
+);
+
+const progressBar =
+document.querySelector(
+    ".bg-green-500"
+);
+
+if(safety >= 80){
+
+    safetyText.innerText = "SAFE";
+
+    progressBar.style.width = "82%";
+
+}
+
+else if(safety >= 50){
+
+    safetyText.innerText = "MODERATE";
+
+    safetyText.className =
+        "text-yellow-400 font-bold";
+
+    progressBar.className =
+        "bg-yellow-500 h-3 rounded";
+
+    progressBar.style.width = "60%";
+
+}
+
+else{
+
+    safetyText.innerText = "UNSAFE";
+
+    safetyText.className =
+        "text-red-400 font-bold";
+
+    progressBar.className =
+        "bg-red-500 h-3 rounded";
+
+    progressBar.style.width = "30%";
+}
+</script>
+
+</body>
+</html>

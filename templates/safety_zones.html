@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Women Safety Map</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <style>
+    #map {
+      min-height: 68vh;
+      border-radius: 1rem;
+    }
+    .leaflet-container {
+      border-radius: 1rem;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100">
+  <div class="mx-auto max-w-7xl px-4 py-6">
+    <div class="mb-6 rounded-3xl border border-slate-700 bg-slate-900/80 p-6 shadow-xl shadow-slate-900/50">
+      <h1 class="text-4xl font-semibold text-emerald-300">Smart Women Safety</h1>
+      <p class="mt-2 text-slate-400">Interactive route planning with Leaflet and OpenStreetMap. Avoid dangerous zones and report new unsafe areas.</p>
+    </div>
+
+    <div class="grid gap-6 xl:grid-cols-[360px_1fr]">
+      <div class="space-y-6">
+        <section class="rounded-3xl border border-slate-700 bg-slate-900/90 p-6 shadow-lg">
+          <h2 class="text-2xl font-semibold text-white">Controls</h2>
+          <div class="mt-5 space-y-4">
+            <div>
+              <label class="mb-1 block text-sm font-medium text-slate-300">Source</label>
+              <input id="source-input" type="text" placeholder="Address or lat,lng" class="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 focus:border-emerald-400 focus:outline-none" />
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-slate-300">Destination</label>
+              <input id="destination-input" type="text" placeholder="Address or lat,lng" class="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 focus:border-emerald-400 focus:outline-none" />
+            </div>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <button id="use-my-location" class="rounded-2xl bg-emerald-500 px-4 py-3 font-semibold text-slate-950 transition hover:bg-emerald-400">Use My Location as Source</button>
+              <button id="swap-btn" class="rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 font-semibold text-white transition hover:border-emerald-400">Swap Source/Destination</button>
+            </div>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <button id="manual-source-btn" class="rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 font-semibold text-white transition hover:border-emerald-400">Enter Source Manually</button>
+              <button id="manual-destination-btn" class="rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 font-semibold text-white transition hover:border-emerald-400">Enter Destination Manually</button>
+            </div>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <button id="find-route-btn" class="rounded-2xl bg-sky-500 px-4 py-3 font-semibold text-slate-950 transition hover:bg-sky-400">Find Safe Route</button>
+              <button id="clear-btn" class="rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 font-semibold text-white transition hover:border-red-400">Clear Map</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="rounded-3xl border border-slate-700 bg-slate-900/90 p-6 shadow-lg">
+          <h2 class="text-2xl font-semibold text-white">Report Unsafe Location</h2>
+          <p class="mt-2 text-slate-400">Click the map to choose a location, then report it as unsafe.</p>
+          <div class="mt-4 space-y-4">
+            <div>
+              <label class="mb-1 block text-sm font-medium text-slate-300">Danger Radius (meters)</label>
+              <input id="zone-radius" type="number" min="100" value="450" class="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 focus:border-rose-400 focus:outline-none" />
+            </div>
+            <button id="report-danger-btn" class="w-full rounded-2xl bg-rose-500 px-4 py-3 font-semibold text-slate-950 transition hover:bg-rose-400">Report Unsafe Location</button>
+            <div class="rounded-2xl bg-slate-950/70 p-4 text-sm text-slate-300">
+              <p><span class="font-semibold text-white">Last clicked point:</span> <span id="last-clicked">None</span></p>
+              <p class="mt-2 text-slate-400">Use the map to select a position, then press the report button.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="status-panel" class="rounded-3xl border border-slate-700 bg-slate-900/90 p-6 shadow-lg">
+          <h2 class="text-2xl font-semibold text-white">Status</h2>
+          <div class="mt-4 space-y-3 text-slate-200">
+            <p><span class="font-semibold">Current location:</span> <span id="current-location">Locating...</span></p>
+            <p><span class="font-semibold">Source:</span> <span id="source-status">None</span></p>
+            <p><span class="font-semibold">Destination:</span> <span id="destination-status">None</span></p>
+            <p><span class="font-semibold">Route status:</span> <span id="route-status">Waiting</span></p>
+            <p class="text-sm text-slate-400" id="instructions">Click a map point or use the buttons above to place source and destination markers.</p>
+          </div>
+        </section>
+      </div>
+
+      <div class="space-y-6">
+        <div id="map"></div>
+        <div class="rounded-3xl border border-slate-700 bg-slate-900/90 p-5 text-slate-300 shadow-lg">
+          <h2 class="text-xl font-semibold text-white">Map legend</h2>
+          <ul class="mt-3 space-y-2 text-sm">
+            <li><span class="font-semibold text-emerald-300">●</span> My Location / Source / Destination</li>
+            <li><span class="font-semibold text-red-400">●</span> Unsafe zones</li>
+            <li><span class="font-semibold text-sky-400">—</span> Safest route</li>
+            <li><span class="font-semibold text-yellow-300">—</span> Alternative route around unsafe zones</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const map = L.map('map').setView([12.9716, 77.5946], 12);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(map);
+
+    const zoneLayerGroup = L.layerGroup().addTo(map);
+    let currentLocation = null;
+    let sourcePoint = null;
+    let destinationPoint = null;
+    let sourceMarker = null;
+    let destinationMarker = null;
+    let currentMarker = null;
+    let routeLayer = null;
+    let manualSelectMode = null;
+    let lastClickedLocation = null;
+    let zones = [];
+
+    const sourceInput = document.getElementById('source-input');
+    const destinationInput = document.getElementById('destination-input');
+    const currentLocationStatus = document.getElementById('current-location');
+    const sourceStatus = document.getElementById('source-status');
+    const destinationStatus = document.getElementById('destination-status');
+    const routeStatus = document.getElementById('route-status');
+    const instructions = document.getElementById('instructions');
+    const lastClickedText = document.getElementById('last-clicked');
+
+    async function init() {
+      attachEvents();
+      await loadZones();
+      locateUser();
+    }
+
+    function attachEvents() {
+      map.on('click', handleMapClick);
+      document.getElementById('use-my-location').addEventListener('click', useMyLocationAsSource);
+      document.getElementById('manual-source-btn').addEventListener('click', () => enterManualMode('source'));
+      document.getElementById('manual-destination-btn').addEventListener('click', () => enterManualMode('destination'));
+      document.getElementById('swap-btn').addEventListener('click', swapSourceDestination);
+      document.getElementById('clear-btn').addEventListener('click', clearMap);
+      document.getElementById('find-route-btn').addEventListener('click', findRoute);
+      document.getElementById('report-danger-btn').addEventListener('click', reportUnsafeLocation);
+      sourceInput.addEventListener('keydown', async (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          await setSourceFromInput();
+        }
+      });
+      destinationInput.addEventListener('keydown', async (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          await setDestinationFromInput();
+        }
+      });
+    }
+
+    function updateStatus() {
+      currentLocationStatus.textContent = currentLocation ? `${currentLocation.lat.toFixed(5)}, ${currentLocation.lng.toFixed(5)}` : 'Not available';
+      sourceStatus.textContent = sourcePoint ? `${sourcePoint.lat.toFixed(5)}, ${sourcePoint.lng.toFixed(5)}` : 'None';
+      destinationStatus.textContent = destinationPoint ? `${destinationPoint.lat.toFixed(5)}, ${destinationPoint.lng.toFixed(5)}` : 'None';
+    }
+
+    function setInstructions(text) {
+      instructions.textContent = text;
+    }
+
+    function getReportPoint() {
+      if (lastClickedLocation) return lastClickedLocation;
+      if (destinationPoint) return destinationPoint;
+      if (sourcePoint) return sourcePoint;
+      return currentLocation;
+    }
+
+    async function loadZones() {
+      try {
+        const response = await fetch('/api/zones/');
+        const json = await response.json();
+        zones = json.zones || [];
+        drawZones();
+      } catch (error) {
+        console.error('Unable to fetch unsafe zones', error);
+        setInstructions('Unable to load unsafe zones. Check your network or backend.');
+      }
+    }
+
+    function drawZones() {
+      zoneLayerGroup.clearLayers();
+      zones.forEach((zone) => {
+        const circle = L.circle([zone.latitude, zone.longitude], {
+          color: 'red',
+          fillColor: 'red',
+          fillOpacity: 0.35,
+          radius: zone.radius,
+        }).addTo(zoneLayerGroup);
+        circle.bindPopup(`${zone.name}<br />Radius: ${zone.radius}m`);
+      });
+    }
+
+    function updateLastClicked() {
+      if (!lastClickedLocation) {
+        lastClickedText.textContent = 'None';
+        return;
+      }
+      lastClickedText.textContent = `${lastClickedLocation.lat.toFixed(5)}, ${lastClickedLocation.lng.toFixed(5)}`;
+    }
+
+    function handleMapClick(event) {
+      lastClickedLocation = event.latlng;
+      updateLastClicked();
+
+      if (manualSelectMode === 'source') {
+        setSourcePoint(event.latlng);
+        manualSelectMode = null;
+        setInstructions('Source selected from map. Now choose destination or enter it manually.');
+        return;
+      }
+
+      if (manualSelectMode === 'destination') {
+        setDestinationPoint(event.latlng);
+        manualSelectMode = null;
+        setInstructions('Destination selected from map. Ready to route.');
+        return;
+      }
+
+      if (!sourcePoint) {
+        setSourcePoint(event.latlng);
+        setInstructions('Source selected from map. Select destination next.');
+        return;
+      }
+
+      if (!destinationPoint) {
+        setDestinationPoint(event.latlng);
+        setInstructions('Destination selected from map. Ready to find route.');
+        return;
+      }
+
+      setInstructions('Source and destination already set. Use swap or clear to change them.');
+    }
+
+    function setSourcePoint(latlng) {
+      sourcePoint = { lat: latlng.lat, lng: latlng.lng };
+      if (sourceMarker) {
+        map.removeLayer(sourceMarker);
+      }
+      sourceMarker = L.marker([latlng.lat, latlng.lng], {
+        title: 'Source',
+      }).addTo(map).bindPopup('Source').openPopup();
+      sourceInput.value = `${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`;
+      updateStatus();
+    }
+
+    function setDestinationPoint(latlng) {
+      destinationPoint = { lat: latlng.lat, lng: latlng.lng };
+      if (destinationMarker) {
+        map.removeLayer(destinationMarker);
+      }
+      destinationMarker = L.marker([latlng.lat, latlng.lng], {
+        title: 'Destination',
+      }).addTo(map).bindPopup('Destination').openPopup();
+      destinationInput.value = `${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`;
+      updateStatus();
+    }
+
+    async function setSourceFromInput() {
+      const value = sourceInput.value.trim();
+      if (!value) {
+        setInstructions('Enter a source address or coordinates.');
+        return;
+      }
+      const point = await parseLocationInput(value);
+      if (point) {
+        setSourcePoint(point);
+        setInstructions('Source set from text input.');
+      }
+    }
+
+    async function setDestinationFromInput() {
+      const value = destinationInput.value.trim();
+      if (!value) {
+        setInstructions('Enter a destination address or coordinates.');
+        return;
+      }
+      const point = await parseLocationInput(value);
+      if (point) {
+        setDestinationPoint(point);
+        setInstructions('Destination set from text input.');
+      }
+    }
+
+    function enterManualMode(mode) {
+      manualSelectMode = mode;
+      setInstructions(`Click the map to set the ${mode} point.`);
+    }
+
+    async function useMyLocationAsSource(event) {
+      event.preventDefault();
+      if (!currentLocation) {
+        setInstructions('Current location not available yet. Please allow location access.');
+        return;
+      }
+      setSourcePoint(currentLocation);
+      setInstructions('Using your current position as the source.');
+    }
+
+    function swapSourceDestination(event) {
+      event.preventDefault();
+      if (!sourcePoint && !destinationPoint) {
+        setInstructions('No source or destination to swap.');
+        return;
+      }
+      const temp = sourcePoint;
+      sourcePoint = destinationPoint;
+      destinationPoint = temp;
+
+      if (sourceMarker) {
+        map.removeLayer(sourceMarker);
+      }
+      if (destinationMarker) {
+        map.removeLayer(destinationMarker);
+      }
+      if (sourcePoint) {
+        sourceMarker = L.marker([sourcePoint.lat, sourcePoint.lng]).addTo(map).bindPopup('Source').openPopup();
+        sourceInput.value = `${sourcePoint.lat.toFixed(6)}, ${sourcePoint.lng.toFixed(6)}`;
+      } else {
+        sourceInput.value = '';
+      }
+      if (destinationPoint) {
+        destinationMarker = L.marker([destinationPoint.lat, destinationPoint.lng]).addTo(map).bindPopup('Destination').openPopup();
+        destinationInput.value = `${destinationPoint.lat.toFixed(6)}, ${destinationPoint.lng.toFixed(6)}`;
+      } else {
+        destinationInput.value = '';
+      }
+      updateStatus();
+      setInstructions('Source and destination swapped.');
+    }
+
+    function clearMap(event) {
+      if (event) event.preventDefault();
+      if (sourceMarker) map.removeLayer(sourceMarker);
+      if (destinationMarker) map.removeLayer(destinationMarker);
+      if (routeLayer) map.removeLayer(routeLayer);
+      sourceMarker = null;
+      destinationMarker = null;
+      routeLayer = null;
+      sourcePoint = null;
+      destinationPoint = null;
+      sourceInput.value = '';
+      destinationInput.value = '';
+      routeStatus.textContent = 'Cleared';
+      routeStatus.classList.remove('text-rose-400', 'text-emerald-300');
+      setInstructions('Map cleared. Set a new source and destination.');
+      updateStatus();
+    }
+
+    function locateUser() {
+      if (!navigator.geolocation) {
+        currentLocationStatus.textContent = 'Geolocation not supported';
+        setInstructions('Your browser does not support geolocation.');
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          currentLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          if (currentMarker) {
+            map.removeLayer(currentMarker);
+          }
+          currentMarker = L.circleMarker([currentLocation.lat, currentLocation.lng], {
+            radius: 9,
+            color: '#10b981',
+            fillColor: '#a7f3d0',
+            fillOpacity: 0.9,
+          }).addTo(map).bindPopup('My Location');
+          currentMarker.openPopup();
+          map.setView([currentLocation.lat, currentLocation.lng], 13);
+          updateStatus();
+          setInstructions('Current location found. You may use it as source or click the map to select points.');
+        },
+        () => {
+          currentLocationStatus.textContent = 'Permission denied or unavailable';
+          setInstructions('Unable to access current location. Use manual entry or map clicks.');
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 60000,
+        }
+      );
+    }
+
+    async function parseLocationInput(text) {
+      const coordinateMatch = text.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+      if (coordinateMatch) {
+        return {
+          lat: parseFloat(coordinateMatch[1]),
+          lng: parseFloat(coordinateMatch[2]),
+        };
+      }
+      const encoded = encodeURIComponent(text);
+      try {
+        const result = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encoded}`);
+        const data = await result.json();
+        if (!data.length) {
+          setInstructions('No results found for the entered address.');
+          return null;
+        }
+        return {
+          lat: parseFloat(data[0].lat),
+          lng: parseFloat(data[0].lon),
+        };
+      } catch (error) {
+        console.error('Geocoding failed', error);
+        setInstructions('Unable to geocode the entered text. Try a different address or coordinates.');
+        return null;
+      }
+    }
+
+    async function findRoute(event) {
+      if (event) event.preventDefault();
+      if (!sourcePoint || !destinationPoint) {
+        setInstructions('Set both source and destination before finding a route.');
+        return;
+      }
+      setInstructions('Calculating route...');
+      const routeResult = await getSafeRoute(sourcePoint, destinationPoint);
+      if (!routeResult) {
+        routeStatus.textContent = 'No route available';
+        return;
+      }
+      renderRoute(routeResult);
+    }
+
+    async function getSafeRoute(source, destination) {
+      const direct = await fetchRoute([source, destination]);
+      if (!direct) {
+        return null;
+      }
+      const directIntercepts = routeIntersectsZones(direct.coords);
+      if (!directIntercepts) {
+        return { ...direct, safe: true, note: 'Direct route avoids unsafe zones.' };
+      }
+      const unsafeZones = getZonesOnRoute(direct.coords);
+      if (!unsafeZones.length) {
+        return { ...direct, safe: false, note: 'Route crosses danger zones.' };
+      }
+      for (const zone of unsafeZones) {
+        const detourPoints = generateDetourPoints(zone, source, destination);
+        for (const point of detourPoints) {
+          const candidate = await fetchRoute([source, point, destination]);
+          if (candidate && !routeIntersectsZones(candidate.coords)) {
+            return {
+              ...candidate,
+              safe: true,
+              alternate: true,
+              note: `Alternative route avoids ${zone.name}.`,
+              warning: 'This route is safer than the direct path.',
+            };
+          }
+        }
+      }
+      return { ...direct, safe: false, note: 'No safe alternative found. Direct route passes through unsafe zones.' };
+    }
+
+    async function fetchRoute(points) {
+      const coordString = points.map((point) => `${point.lng},${point.lat}`).join(';');
+      const url = `https://router.project-osrm.org/route/v1/driving/${coordString}?overview=full&geometries=geojson`;
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        if (!data.routes || !data.routes.length) {
+          return null;
+        }
+        const route = data.routes[0];
+        const coords = route.geometry.coordinates.map(([lng, lat]) => ({ lat, lng }));
+        return {
+          coords,
+          distance: route.distance,
+          duration: route.duration,
+        };
+      } catch (error) {
+        console.error('Routing error', error);
+        return null;
+      }
+    }
+
+    function routeIntersectsZones(coords) {
+      return getZonesOnRoute(coords).length > 0;
+    }
+
+    function getZonesOnRoute(coords) {
+      return zones.filter((zone) => coords.some((point) => distanceMeters(point, zone) <= zone.radius));
+    }
+
+    function renderRoute(routeResult) {
+      if (routeLayer) {
+        map.removeLayer(routeLayer);
+      }
+      const path = routeResult.coords.map((point) => [point.lat, point.lng]);
+      routeLayer = L.polyline(path, {
+        color: routeResult.safe ? (routeResult.alternate ? '#facc15' : '#38bdf8') : '#f43f5e',
+        weight: 6,
+        opacity: 0.85,
+      }).addTo(map);
+      map.fitBounds(routeLayer.getBounds(), { padding: [40, 40] });
+      routeStatus.textContent = routeResult.note || 'Route calculated';
+      routeStatus.classList.remove('text-rose-400', 'text-emerald-300');
+      routeStatus.classList.add(routeResult.safe ? 'text-emerald-300' : 'text-rose-400');
+      if (routeResult.warning) {
+        setInstructions(routeResult.warning);
+      } else {
+        setInstructions(routeResult.note);
+      }
+    }
+
+    function distanceMeters(a, b) {
+      const lat1 = toRadians(a.lat);
+      const lat2 = toRadians(b.latitude);
+      const dLat = lat2 - lat1;
+      const dLng = toRadians(b.longitude - a.lng);
+      const sinLat = Math.sin(dLat / 2);
+      const sinLng = Math.sin(dLng / 2);
+      const earthRadius = 6371000;
+      const value = sinLat * sinLat + Math.cos(lat1) * Math.cos(lat2) * sinLng * sinLng;
+      return earthRadius * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
+    }
+
+    function toRadians(degrees) {
+      return (degrees * Math.PI) / 180;
+    }
+
+    function toDegrees(radians) {
+      return (radians * 180) / Math.PI;
+    }
+
+    function computeDestination(point, bearing, distance) {
+      const radius = 6371000;
+      const angularDistance = distance / radius;
+      const bearingRad = toRadians(bearing);
+      const lat1 = toRadians(point.latitude);
+      const lng1 = toRadians(point.longitude);
+      const lat2 = Math.asin(
+        Math.sin(lat1) * Math.cos(angularDistance) +
+          Math.cos(lat1) * Math.sin(angularDistance) * Math.cos(bearingRad)
+      );
+      const lng2 = lng1 +
+        Math.atan2(
+          Math.sin(bearingRad) * Math.sin(angularDistance) * Math.cos(lat1),
+          Math.cos(angularDistance) - Math.sin(lat1) * Math.sin(lat2)
+        );
+      return { latitude: toDegrees(lat2), longitude: ((toDegrees(lng2) + 540) % 360) - 180 };
+    }
+
+    function computeBearing(origin, destination) {
+      const lat1 = toRadians(origin.latitude);
+      const lat2 = toRadians(destination.latitude);
+      const dLng = toRadians(destination.longitude - origin.longitude);
+      const y = Math.sin(dLng) * Math.cos(lat2);
+      const x = Math.cos(lat1) * Math.sin(lat2) -
+        Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+      return (toDegrees(Math.atan2(y, x)) + 360) % 360;
+    }
+
+    function generateDetourPoints(zone, source, destination) {
+      const center = { latitude: zone.latitude, longitude: zone.longitude };
+      const bearing = computeBearing(center, destination);
+      const distance = zone.radius * 1.9;
+      const detourAngles = [bearing + 90, bearing - 90, bearing + 135, bearing - 135];
+      return detourAngles.map((angle) => {
+        const point = computeDestination(center, angle, distance);
+        return { lat: point.latitude, lng: point.longitude };
+      });
+    }
+
+    async function reportUnsafeLocation(event) {
+      event.preventDefault();
+      const point = getReportPoint();
+      if (!point) {
+        setInstructions('No location available to report. Click the map or set a source/destination first.');
+        return;
+      }
+      const radius = parseInt(document.getElementById('zone-radius').value, 10) || 450;
+      try {
+        const response = await fetch('/api/report/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            latitude: point.lat,
+            longitude: point.lng,
+            radius,
+            name: 'User reported unsafe zone',
+          }),
+        });
+        if (!response.ok) {
+          throw new Error('Report failed');
+        }
+        const zone = await response.json();
+        zones.push(zone);
+        drawZones();
+        setInstructions('Unsafe location reported and added to the map.');
+      } catch (error) {
+        console.error('Report failed', error);
+        setInstructions('Unable to report unsafe location. Try again later.');
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
